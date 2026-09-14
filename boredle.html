@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Boredle</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#1a1a1b;
+    --border:#d3d6da;
+    --border-dark:#878a8c;
+    --key-bg:#d3d6da;
+    --key-text:#1a1a1b;
+    --correct:#6aaa64;
+    --present:#c9b458;
+    --absent:#787c7f;
+    --modal-bg:#ffffff;
+    --header-border:#d3d6da;
+  }
+  html.dark{
+    --bg:#121213;
+    --text:#ffffff;
+    --border:#3a3a3c;
+    --border-dark:#565758;
+    --key-bg:#818384;
+    --key-text:#ffffff;
+    --correct:#538d4e;
+    --present:#b59f3b;
+    --absent:#3a3a3c;
+    --modal-bg:#121213;
+    --header-border:#3a3a3c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Helvetica Neue", Arial, "Clear Sans", sans-serif;
+    transition:background .2s, color .2s;
+  }
+  .app{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    height:100%;
+    max-width:500px;
+    margin:0 auto;
+  }
+  header{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    height:52px;
+    border-bottom:1px solid var(--header-border);
+    flex-shrink:0;
+  }
+  header h1{
+    font-family:"nyt-karnakcondensed","Helvetica Neue",Arial,sans-serif;
+    font-size:36px;
+    font-weight:700;
+    letter-spacing:0.06em;
+    margin:0 auto;
+    text-transform:uppercase;
+  }
+  .icon-btn{
+    background:none;
+    border:none;
+    cursor:pointer;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px;
+  }
+  .icon-btn svg{width:24px;height:24px;fill:none;stroke:var(--text);stroke-width:2;}
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    padding:8px 8px 0;
+    overflow:hidden;
+  }
+
+  #board-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    min-height:0;
+  }
+  #board{
+    display:grid;
+    grid-template-rows:repeat(6, 1fr);
+    gap:5px;
+    width:min(350px, 82vw);
+    height:min(420px, 62vh);
+  }
+  .row{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:5px;
+  }
+  .tile{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:2rem;
+    font-weight:bold;
+    line-height:2rem;
+    border:2px solid var(--border);
+    text-transform:uppercase;
+    color:var(--text);
+    user-select:none;
+  }
+  .tile.filled{
+    border-color:var(--border-dark);
+    animation:pop 0.1s ease-in-out;
+  }
+  @keyframes pop{
+    0%{transform:scale(0.9);}
+    40%{transform:scale(1.05);}
+    100%{transform:scale(1);}
+  }
+  .tile.flip{
+    animation:flipTile 0.5s ease forwards;
+  }
+  @keyframes flipTile{
+    0%{transform:rotateX(0deg);}
+    50%{transform:rotateX(90deg);}
+    100%{transform:rotateX(0deg);}
+  }
+  .tile.correct{background:var(--correct);border-color:var(--correct);color:#fff;}
+  .tile.present{background:var(--present);border-color:var(--present);color:#fff;}
+  .tile.absent{background:var(--absent);border-color:var(--absent);color:#fff;}
+  .row.shake{animation:shake 0.5s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-1px);}
+    20%,80%{transform:translateX(2px);}
+    30%,50%,70%{transform:translateX(-4px);}
+    40%,60%{transform:translateX(4px);}
+  }
+  .tile.bounce{animation:bounce 0.6s;}
+  @keyframes bounce{
+    0%,100%{transform:translateY(0);}
+    20%{transform:translateY(0);}
+    40%{transform:translateY(-18px);}
+    60%{transform:translateY(0);}
+  }
+
+  #toast-wrap{
+    position:fixed;
+    top:70px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:200;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    pointer-events:none;
+  }
+  .toast{
+    background:var(--text);
+    color:var(--bg);
+    padding:10px 16px;
+    border-radius:4px;
+    font-size:14px;
+    font-weight:600;
+    text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  }
+
+  #keyboard{
+    width:100%;
+    max-width:500px;
+    margin:0 auto;
+    padding:8px 8px 12px;
+    user-select:none;
+    flex-shrink:0;
+  }
+  .krow{
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .key{
+    flex:1;
+    max-width:43px;
+    height:58px;
+    border:0;
+    border-radius:4px;
+    background:var(--key-bg);
+    color:var(--key-text);
+    font-weight:bold;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    text-transform:uppercase;
+    transition:background .1s;
+  }
+  .key.wide{max-width:65px;font-size:11px;}
+  .key.correct{background:var(--correct);color:#fff;}
+  .key.present{background:var(--present);color:#fff;}
+  .key.absent{background:var(--absent);color:#fff;}
+  .key:active{opacity:0.7;}
+  .key svg{width:22px;height:22px;fill:var(--key-text);}
+
+  #overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.5);
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    z-index:300;
+    padding-top:8vh;
+  }
+  #overlay.show{display:flex;}
+  .modal{
+    background:var(--modal-bg);
+    color:var(--text);
+    border-radius:8px;
+    padding:20px 24px 24px;
+    max-width:340px;
+    width:88%;
+    position:relative;
+    box-shadow:0 4px 23px rgba(0,0,0,0.3);
+    max-height:80vh;
+    overflow-y:auto;
+  }
+  .modal-close{
+    position:absolute;
+    top:12px;right:12px;
+    background:none;border:none;
+    cursor:pointer;
+    color:var(--text);
+  }
+  .modal h2{
+    text-align:center;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    font-size:18px;
+    margin:4px 0 16px;
+  }
+  .modal p{font-size:14px;line-height:1.5;}
+  .example-row{display:flex;gap:4px;margin:8px 0;}
+  .example-tile{
+    width:36px;height:36px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:bold;font-size:18px;
+    border:2px solid var(--border);
+    text-transform:uppercase;
+  }
+  .divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+  .stats-grid{
+    display:flex;
+    justify-content:space-around;
+    text-align:center;
+    margin:16px 0;
+  }
+  .stats-grid div{display:flex;flex-direction:column;}
+  .stats-num{font-size:28px;font-weight:400;}
+  .stats-label{font-size:10px;max-width:70px;}
+  .dist-row{display:flex;align-items:center;gap:6px;font-size:13px;margin:3px 0;}
+  .dist-num{width:10px;}
+  .dist-bar-wrap{flex:1;background:transparent;}
+  .dist-bar{
+    background:var(--absent);
+    color:#fff;
+    text-align:right;
+    padding:2px 6px;
+    min-width:20px;
+    font-weight:600;
+    font-size:13px;
+  }
+  .dist-bar.highlight{background:var(--correct);}
+
+  .modal-actions{
+    display:flex;
+    justify-content:center;
+    margin-top:18px;
+  }
+  .share-btn{
+    background:var(--correct);
+    color:#fff;
+    border:none;
+    padding:10px 20px;
+    border-radius:4px;
+    font-weight:bold;
+    font-size:14px;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .toggle-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 0;
+    border-bottom:1px solid var(--border);
+    font-size:15px;
+  }
+  .switch{
+    position:relative;width:40px;height:22px;
+    background:var(--absent);
+    border-radius:12px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .switch.on{background:var(--correct);}
+  .switch::after{
+    content:"";
+    position:absolute;top:2px;left:2px;
+    width:18px;height:18px;
+    background:#fff;border-radius:50%;
+    transition:left .15s;
+  }
+  .switch.on::after{left:20px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div style="display:flex;gap:4px;">
+      <button class="icon-btn" id="helpBtn" aria-label="help">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12" y2="17.01"/><path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 2-3 4"/></svg>
+      </button>
+      <button class="icon-btn" id="hintBtn" aria-label="hint">
+        <svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a6 6 0 0 0-4 10.5c.6.5 1 1.3 1 2.5v0h6v0c0-1.2.4-2 1-2.5A6 6 0 0 0 12 2z"/></svg>
+      </button>
+    </div>
+    <h1>Boredle</h1>
+    <div style="display:flex;gap:4px;">
+      <button class="icon-btn" id="statsBtn" aria-label="stats">
+        <svg viewBox="0 0 24 24"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="puzzleBar" style="text-align:center;font-size:12px;font-weight:600;letter-spacing:0.5px;color:var(--border-dark);padding:6px 0 0;"></div>
+
+  <div id="toast-wrap"></div>
+
+  <main>
+    <div id="board-wrap"><div id="board"></div></div>
+    <div id="keyboard">
+      <div class="krow" data-row="0"></div>
+      <div class="krow" data-row="1"></div>
+      <div class="krow" data-row="2"></div>
+    </div>
+  </main>
+</div>
+
+<div id="overlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+(function(){
+  // ---------- WORD LISTS ----------
+  var COMMON_WORDS = [
+    "ABOUT","ABOVE","ACTOR","ADAPT","ADULT","AFTER","AGAIN","AGENT","ALARM","ALIVE",
+    "ALLOW","ALONE","ALONG","ALTER","AMONG","ANGER","ANGLE","ANGRY","APPLE","APPLY",
+    "ARENA","ARGUE","ARISE","ARROW","ASIDE","ASSET","AVOID","AWAKE","AWARD","AWARE",
+    "BADLY","BAKER","BASIC","BEACH","BEGAN","BEGIN","BEING","BELOW","BENCH","BIRTH",
+    "BLACK","BLAME","BLANK","BLIND","BLOOD","BOARD","BOAST","BONUS","BOOST","BOUND",
+    "BRAIN","BRAND","BREAD","BREAK","BREED","BRIEF","BRING","BROAD","BROKE","BROWN",
+    "BUILD","BUILT","BUYER","CABLE","CANDY","CARGO","CARRY","CATCH","CAUSE","CHAIN",
+    "CHAIR","CHART","CHASE","CHEAP","CHECK","CHEST","CHIEF","CHILD","CHOSE","CIVIL",
+    "CLAIM","CLASS","CLEAN","CLEAR","CLIMB","CLOCK","CLOSE","COACH","COAST","COULD",
+    "COUNT","COURT","COVER","CRAFT","CRASH","CRAZY","CREAM","CRIME","CROSS","CROWD",
+    "CROWN","CURVE","CYCLE","DAILY","DANCE","DEATH","DELAY","DEPTH","DOING","DOUBT",
+    "DOZEN","DRAFT","DRAMA","DRANK","DRAWN","DREAM","DRESS","DRILL","DRINK","DRIVE",
+    "EARLY","EARTH","EIGHT","ELITE","EMPTY","ENEMY","ENJOY","ENTER","ENTRY","EQUAL",
+    "ERROR","EVENT","EVERY","EXACT","EXIST","EXTRA","FAITH","FALSE","FAULT","FIELD",
+    "FIFTH","FIFTY","FIGHT","FINAL","FIRST","FLASH","FLEET","FLOOR","FLUID","FOCUS",
+    "FORCE","FORTH","FORTY","FOUND","FRAME","FRANK","FRESH","FRONT","FRUIT","FULLY",
+    "FUNNY","GIANT","GIVEN","GLASS","GLOBE","GOING","GRACE","GRADE","GRAND","GRANT",
+    "GRASS","GREAT","GREEN","GROSS","GROUP","GROWN","GUARD","GUESS","GUIDE","HAPPY",
+    "HEART","HEAVY","HONOR","HORSE","HOTEL","HOUSE","HUMAN","IDEAL","IMAGE","INDEX",
+    "INNER","ISSUE","JOINT","JUDGE","KNIFE","KNOWN","LABEL","LARGE","LASER","LATER",
+    "LAUGH","LAYER","LEARN","LEAST","LEAVE","LEGAL","LEVEL","LIGHT","LIMIT","LOCAL",
+    "LOOSE","LOWER","LUCKY","LUNCH","MAGIC","MAJOR","MAKER","MARCH","MATCH","MAYBE",
+    "MAYOR","MEANT","MEDIA","METAL","MIGHT","MINOR","MINUS","MODEL","MONEY","MONTH",
+    "MORAL","MOTOR","MOUNT","MOUSE","MOUTH","MOVED","MOVIE","MUSIC","NEEDS","NEVER",
+    "NIGHT","NOISE","NORTH","NOTED","NOVEL","NURSE","OCEAN","OFFER","OFTEN","ORDER",
+    "OTHER","OUGHT","OUTER","OWNED","PAINT","PANEL","PAPER","PARTY","PEACE","PHASE",
+    "PHONE","PHOTO","PIANO","PIECE","PILOT","PITCH","PLACE","PLAIN","PLANE","PLANT",
+    "PLATE","POINT","POUND","POWER","PRESS","PRICE","PRIDE","PRIME","PRINT","PRIOR",
+    "PRIZE","PROOF","PROUD","PROVE","QUEEN","QUICK","QUIET","QUITE","RADIO","RAISE",
+    "RANGE","RAPID","RATIO","REACH","READY","REFER","RIGHT","RIVAL","RIVER","ROBOT",
+    "ROMAN","ROUGH","ROUND","ROYAL","RURAL","SALES","SAUCE","SCALE","SCENE","SCOPE",
+    "SCORE","SENSE","SERVE","SEVEN","SHALL","SHAPE","SHARE","SHARP","SHEET","SHELF",
+    "SHIFT","SHINE","SHIRT","SHOCK","SHOOT","SHORT","SHOWN","SIGHT","SIGNS","SILLY",
+    "SINCE","SIXTH","SIXTY","SKILL","SLEEP","SLIDE","SMALL","SMART","SMILE","SMOKE",
+    "SNAKE","SOLID","SOLVE","SORRY","SOUND","SOUTH","SPACE","SPARE","SPEAK","SPEED",
+    "SPEND","SPENT","SPLIT","SPOKE","SPORT","STAFF","STAGE","STAKE","STAND","START",
+    "STATE","STEAM","STEEL","STICK","STILL","STOCK","STONE","STOOD","STORE","STORM",
+    "STORY","STRIP","STUCK","STUDY","STUFF","STYLE","SUGAR","SUITE","SUPER","SWEET",
+    "TABLE","TAKEN","TASTE","TAXES","TEACH","THANK","THEME","THERE","THESE","THICK",
+    "THING","THINK","THIRD","THOSE","THREE","THREW","THROW","TIGHT","TIMES","TIRED",
+    "TITLE","TODAY","TOPIC","TOTAL","TOUCH","TOUGH","TOWER","TRACK","TRADE","TRAIL",
+    "TRAIN","TREAT","TREND","TRIAL","TRIED","TRIES","TRUCK","TRULY","TRUST","TRUTH",
+    "TWICE","UNDER","UNION","UNITY","UNTIL","UPPER","UPSET","URBAN","USAGE","USUAL",
+    "VALID","VALUE","VIDEO","VISIT","VITAL","VOICE","WASTE","WATCH","WATER","WHEEL",
+    "WHERE","WHICH","WHILE","WHITE","WHOLE","WHOSE","WOMAN","WOMEN","WORLD","WORRY",
+    "WORSE","WORST","WORTH","WOULD","WOUND","WRITE","WRONG","WROTE","YIELD","YOUNG",
+    "YOUTH"
+  ];
+
+  var EXTRA_VALID = [
+    "ABBEY","ABYSS","ACORN","ADORE","ADOBE","AISLE","ALIGN","ALLEY","ALTAR","AMPLE",
+    "ANNOY","APRON","AUGUR","AUGHT","AVERT",
+    "AXIOM","GLAZE","BADGE","BAGEL","BALMY","BANJO","BARGE","BASIN","BATCH","BAYOU","BERRY",
+    "BINGE","BLURT","BOOZY","BOTCH","BRAWL","BRINY","BRISK","BROIL","BROTH","BRUNT",
+    "BUNCH","BURLY","CADET","CANOE","CARVE","CHALK","CHANT","CHARM","CHESS","CHUNK",
+    "CHURN","CIVIC","CLASP","CLING","CLOAK","CLOVE","COBRA","COMET","CONDO","CORAL",
+    "CRANE","CREEK","CRISP","CRUST","CURLY","DAISY","DECAY","DEPOT","DIARY","DINGY",
+    "DITCH","DODGE","DOUGH","DOWNY","DRAPE","DROWN","DUSKY","EAGER","ELBOW","EMBER",
+    "ENSUE","EPOXY","ERASE","ETHIC","EVOKE","EXPEL","FABLE","FAIRY","FAWNY","FENCE",
+    "FERNS","FETAL","FLAIR","FLESH","FLICK","FLINT","FLOCK","FLUFF","FORGO","FRAIL",
+    "FROST","FUDGE","FUSSY","GAUZE","GAWKY","GLAND","GLARE","GLEAM","GLIDE","GLOOM",
+    "GNASH","HONEY","GRAVY","GRIME","GROVE","GRUFF",
+    "GUILT","GUISE","GULLY","HATCH","HAVEN","HAZEL","HINGE","HOBBY","HOIST","HOVER",
+    "HUMID","HUTCH","HYDRA","INKED","IRATE","IVORY","JELLY","JOKER","JOUST","JUICY",
+    "KAYAK","KIOSK","KNEAD","KNEEL","KNOCK","LATCH","LEDGE","LILAC","LINEN","LODGE",
+    "LOFTY","LUMEN","LURCH","LYRIC","MAPLE","MARSH","MERGE","MIRTH","MOSSY","MULCH",
+    "MURKY","MUSTY","NASAL","NICHE","AMBLE","NOBLE",
+    "NUDGE","NYLON","OASIS","OBESE","OLIVE","ONSET","OPERA","ORBIT","OTTER","OUTDO",
+    "OZONE","PATIO","PEACH","PEARL","PLUME","POACH","POISE","POLKA","POUCH","PRUDE",
+    "PUPIL","PUTTY","QUAKE","QUART","QUELL","QUIRK","QUOTA","RADAR","RAINY","RAKED",
+    "RANCH","RASPY","RAVEN","RELAY","RESIN","RIDGE","ROACH","ROAST","ROBIN","ROOST",
+    "RUSTY","SATIN","SAVOR","SCARF","SCOLD","SCOUT","SCRUB","SEDAN","SHACK",
+    "SHREW","SHRUB","SIEGE","SIREN","SLOTH","SLUSH","SMIRK","SNORT","SOGGY","SPICE","SPINE",
+    "SPLAT","SPRIG","STALK","STEED","STOIC","STOUT","STRAY","SULKY","SWAMP","SWIRL",
+    "TANGY","THORN","THUMB","TONIC","TOPAZ","TORCH","TOXIN","TRACE","TRIBE","TROVE",
+    "TRUNK","TULIP","TUNIC","TWEAK","TWINE","UNCLE","UNFIT","UNZIP","USHER","UTTER",
+    "VAPOR","OXIDE","VENOM","VIGOR","VIXEN","VOCAL",
+    "VOUCH","WACKY","WAGER","WALTZ","WEARY","WEDGE","WHISK","WITTY","WOVEN","WRIST",
+    "YEARN","ZEBRA","ZESTY"
+  ];
+
+  var VALID = {};
+  COMMON_WORDS.forEach(function(w){ VALID[w]=true; });
+  EXTRA_VALID.forEach(function(w){ if(w.length===5) VALID[w]=true; });
+
+  // Categorized answer pool — each daily/practice puzzle picks from here so a
+  // themed hint ("Related to: Animals") is always available.
+  var CATEGORIZED = [
+    {w:"HORSE",cat:"Animals"},{w:"MOUSE",cat:"Animals"},{w:"SNAKE",cat:"Animals"},
+    {w:"ZEBRA",cat:"Animals"},{w:"OTTER",cat:"Animals"},{w:"ROBIN",cat:"Animals"},
+    {w:"SHREW",cat:"Animals"},{w:"MOOSE",cat:"Animals"},{w:"BISON",cat:"Animals"},
+    {w:"COBRA",cat:"Animals"},{w:"HYENA",cat:"Animals"},{w:"LLAMA",cat:"Animals"},
+    {w:"PANDA",cat:"Animals"},{w:"SHARK",cat:"Animals"},{w:"WHALE",cat:"Animals"},
+    {w:"CRANE",cat:"Animals"},{w:"VIXEN",cat:"Animals"},{w:"OXIDE",cat:"Science"},
+    {w:"BREAD",cat:"Food & Drink"},{w:"APPLE",cat:"Food & Drink"},{w:"CANDY",cat:"Food & Drink"},
+    {w:"SUGAR",cat:"Food & Drink"},{w:"GRAVY",cat:"Food & Drink"},{w:"MELON",cat:"Food & Drink"},
+    {w:"PEACH",cat:"Food & Drink"},{w:"MANGO",cat:"Food & Drink"},{w:"OLIVE",cat:"Food & Drink"},
+    {w:"BACON",cat:"Food & Drink"},{w:"TOAST",cat:"Food & Drink"},{w:"HONEY",cat:"Food & Drink"},
+    {w:"CREAM",cat:"Food & Drink"},{w:"SAUCE",cat:"Food & Drink"},{w:"FUDGE",cat:"Food & Drink"},
+    {w:"ELBOW",cat:"Body Parts"},{w:"HEART",cat:"Body Parts"},{w:"MOUTH",cat:"Body Parts"},
+    {w:"THUMB",cat:"Body Parts"},{w:"WRIST",cat:"Body Parts"},{w:"ANKLE",cat:"Body Parts"},
+    {w:"STORM",cat:"Weather & Nature"},{w:"CLOUD",cat:"Weather & Nature"},{w:"OCEAN",cat:"Weather & Nature"},
+    {w:"RIVER",cat:"Weather & Nature"},{w:"EARTH",cat:"Weather & Nature"},{w:"FROST",cat:"Weather & Nature"},
+    {w:"RIDGE",cat:"Weather & Nature"},{w:"GROVE",cat:"Weather & Nature"},{w:"CORAL",cat:"Weather & Nature"},
+    {w:"GLAZE",cat:"Weather & Nature"},
+    {w:"BLACK",cat:"Colors"},{w:"WHITE",cat:"Colors"},{w:"BROWN",cat:"Colors"},
+    {w:"GREEN",cat:"Colors"},{w:"IVORY",cat:"Colors"},
+    {w:"COACH",cat:"Sports"},{w:"SCORE",cat:"Sports"},{w:"SPORT",cat:"Sports"},
+    {w:"MATCH",cat:"Sports"},{w:"FIELD",cat:"Sports"},{w:"KAYAK",cat:"Sports"},
+    {w:"PIANO",cat:"Music"},{w:"MUSIC",cat:"Music"},{w:"CHANT",cat:"Music"},
+    {w:"LYRIC",cat:"Music"},{w:"TABLE",cat:"Home"},{w:"HOUSE",cat:"Home"},
+    {w:"CHAIR",cat:"Home"},{w:"HINGE",cat:"Home"},{w:"LEDGE",cat:"Home"},
+    {w:"SHIRT",cat:"Clothing"},{w:"APRON",cat:"Clothing"},{w:"TUNIC",cat:"Clothing"},
+    {w:"HOTEL",cat:"Travel"},{w:"TRAIN",cat:"Travel"},{w:"PLANE",cat:"Travel"},
+    {w:"TRUCK",cat:"Travel"},{w:"CANOE",cat:"Travel"},
+    {w:"PHONE",cat:"Tech & Science"},{w:"PHOTO",cat:"Tech & Science"},{w:"LASER",cat:"Tech & Science"},
+    {w:"ROBOT",cat:"Tech & Science"},{w:"RADIO",cat:"Tech & Science"},{w:"INDEX",cat:"Tech & Science"},
+    {w:"HAPPY",cat:"Emotions"},{w:"ANGRY",cat:"Emotions"},{w:"PROUD",cat:"Emotions"},
+    {w:"EAGER",cat:"Emotions"},{w:"WEARY",cat:"Emotions"},
+    {w:"CHESS",cat:"Games"},{w:"QUEEN",cat:"Games"},{w:"JOKER",cat:"Games"},
+    {w:"KNIFE",cat:"Tools & Objects"},{w:"CABLE",cat:"Tools & Objects"},{w:"CLOCK",cat:"Tools & Objects"},
+    {w:"TORCH",cat:"Tools & Objects"},{w:"WHISK",cat:"Tools & Objects"},{w:"KNEAD",cat:"Tools & Objects"},
+    {w:"BADGE",cat:"Tools & Objects"},{w:"BUGLE",cat:"Music"}
+  ];
+  // sanitize any accidental non-5-letter or duplicate entries defensively
+  (function(){
+    var seen={}, clean=[];
+    CATEGORIZED.forEach(function(o){
+      if(o.w && o.w.length===5 && !seen[o.w]){ seen[o.w]=true; clean.push(o); }
+    });
+    CATEGORIZED = clean;
+  })();
+  var CATEGORY_OF = {};
+  CATEGORIZED.forEach(function(o){ CATEGORY_OF[o.w]=o.cat; VALID[o.w]=true; });
+  var ANSWER_POOL = CATEGORIZED.map(function(o){ return o.w; });
+
+  // ---------- STATE ----------
+  var WORD_LEN=5, MAX_ROWS=6;
+  var PUZZLES_PER_DAY=3;
+  var answer="", guesses=[], current="", gameOver=false;
+  var hintStage=0; // 0 = no hint, 1 = category revealed, 2 = letter revealed
+  var puzzleSlot=0; // which puzzle of the day (0-based)
+  var stats={played:0,wins:0,streak:0,maxStreak:0,dist:[0,0,0,0,0,0],lastWin:null};
+
+  function dayIndex(){
+    var epoch=Date.UTC(2024,0,1);
+    var now=new Date();
+    var today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+    return Math.floor((today-epoch)/86400000);
+  }
+  // Deterministic word for a given day+slot so everyone gets the same puzzles that day
+  function wordForSlot(day, slot){
+    var seed = day*PUZZLES_PER_DAY + slot;
+    return ANSWER_POOL[seed % ANSWER_POOL.length];
+  }
+  function pickWord(){ return wordForSlot(dayIndex(), puzzleSlot); }
+
+  // ---------- persistence (in-memory fallback if storage blocked) ----------
+  var memStats=null, memState=null;
+  function ls(action,key,val){
+    try{
+      if(action==='get') return window.localStorage.getItem(key);
+      if(action==='set'){ window.localStorage.setItem(key,val); return true; }
+    }catch(e){ return null; }
+  }
+  function saveStats(){ memStats=JSON.stringify(stats); ls('set','wordle_stats',memStats); }
+  function loadStats(){
+    var raw=ls('get','wordle_stats')||memStats;
+    if(raw){ try{ stats=JSON.parse(raw); }catch(e){} }
+  }
+  function saveState(){
+    memState=JSON.stringify({day:dayIndex(),slot:puzzleSlot,guesses:guesses,gameOver:gameOver,answer:answer,hintStage:hintStage});
+    ls('set','wordle_state',memState);
+  }
+  function loadState(){
+    var raw=ls('get','wordle_state')||memState;
+    if(raw){
+      try{
+        var s=JSON.parse(raw);
+        if(s.day===dayIndex()){
+          puzzleSlot=s.slot||0;
+          guesses=s.guesses||[];
+          gameOver=!!s.gameOver;
+          answer=s.answer||wordForSlot(dayIndex(),puzzleSlot);
+          hintStage=s.hintStage||0;
+          return true;
+        }
+      }catch(e){}
+    }
+    return false;
+  }
+  function startSlot(slot){
+    puzzleSlot=slot;
+    answer=wordForSlot(dayIndex(),puzzleSlot);
+    guesses=[];
+    current='';
+    gameOver=false;
+    hintStage=0;
+  }
+  function updatePuzzleBar(){
+    var bar=document.getElementById('puzzleBar');
+    if(bar) bar.textContent='PUZZLE '+(puzzleSlot+1)+' OF '+PUZZLES_PER_DAY;
+  }
+
+  // ---------- DOM ----------
+  var boardEl=document.getElementById('board');
+  var toastWrap=document.getElementById('toast-wrap');
+  var overlay=document.getElementById('overlay');
+  var modalContent=document.getElementById('modalContent');
+  var tileGrid=[];
+
+  function buildBoard(){
+    boardEl.innerHTML='';
+    tileGrid=[];
+    for(var r=0;r<MAX_ROWS;r++){
+      var row=document.createElement('div');
+      row.className='row';
+      var tiles=[];
+      for(var c=0;c<WORD_LEN;c++){
+        var t=document.createElement('div');
+        t.className='tile';
+        row.appendChild(t);
+        tiles.push(t);
+      }
+      boardEl.appendChild(row);
+      tileGrid.push(tiles);
+    }
+  }
+
+  var KEYROWS=["QWERTYUIOP","ASDFGHJKL","ZXCVBNM"];
+  var keyEls={};
+  function buildKeyboard(){
+    var container=document.getElementById('keyboard');
+    var rows=container.querySelectorAll('.krow');
+    rows.forEach(function(r){ r.innerHTML=''; });
+    KEYROWS.forEach(function(rowStr,i){
+      var row=rows[i];
+      if(i===2){
+        row.appendChild(makeKey('ENTER',true));
+      }
+      rowStr.split('').forEach(function(ch){
+        var k=makeKey(ch,false);
+        row.appendChild(k);
+        keyEls[ch]=k;
+      });
+      if(i===2){
+        var del=makeKey('',true);
+        del.innerHTML='<svg viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1z" fill="none" stroke-linejoin="round"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>';
+        del.dataset.action='del';
+        del.addEventListener('click', backspace);
+        row.appendChild(del);
+      }
+    });
+  }
+  function makeKey(label,wide){
+    var k=document.createElement('div');
+    k.className='key'+(wide?' wide':'');
+    k.textContent=label;
+    if(label==='ENTER'){ k.addEventListener('click', submitGuess); }
+    else if(label!==''){ k.addEventListener('click', function(){ typeLetter(label); }); }
+    return k;
+  }
+
+  function toast(msg, duration){
+    var el=document.createElement('div');
+    el.className='toast';
+    el.textContent=msg;
+    toastWrap.appendChild(el);
+    setTimeout(function(){ el.remove(); }, duration||1300);
+  }
+
+  function updateHintBtn(){
+    var btn=document.getElementById('hintBtn');
+    if(!btn) return;
+    var maxedOut = hintStage>=2 || gameOver;
+    btn.style.opacity = maxedOut ? '0.35' : '1';
+    btn.style.pointerEvents = maxedOut ? 'none' : 'auto';
+  }
+
+  function useHint(){
+    if(gameOver||hintStage>=2) return;
+    if(hintStage===0){
+      var cat = CATEGORY_OF[answer] || 'a common word';
+      toast('Hint: this word is related to '+cat, 2400);
+      hintStage=1;
+    } else if(hintStage===1){
+      var revealedPositions={};
+      guesses.forEach(function(g){
+        var res=evaluateGuess(g,answer);
+        g.split('').forEach(function(ch,i){ if(res[i]==='correct') revealedPositions[i]=true; });
+      });
+      var candidates=[];
+      for(var i=0;i<WORD_LEN;i++){ if(!revealedPositions[i]) candidates.push(i); }
+      if(candidates.length===0){
+        toast('You already know every letter!');
+      } else {
+        var idx = candidates[Math.floor(Math.random()*candidates.length)];
+        var ordinal = ['1st','2nd','3rd','4th','5th'][idx];
+        toast('Hint: the '+ordinal+' letter is "'+answer[idx]+'"', 2400);
+      }
+      hintStage=2;
+    }
+    updateHintBtn();
+    saveState();
+  }
+
+  function typeLetter(ch){
+    if(gameOver||current.length>=WORD_LEN) return;
+    current+=ch;
+    renderCurrentRow();
+  }
+  function backspace(){
+    if(gameOver) return;
+    current=current.slice(0,-1);
+    renderCurrentRow();
+  }
+  function renderCurrentRow(){
+    var r=guesses.length;
+    if(r>=MAX_ROWS) return;
+    var tiles=tileGrid[r];
+    for(var i=0;i<WORD_LEN;i++){
+      var t=tiles[i];
+      if(i<current.length){
+        t.textContent=current[i];
+        t.classList.add('filled');
+      } else {
+        t.textContent='';
+        t.classList.remove('filled');
+      }
+    }
+  }
+  function shakeRow(r){
+    var row=boardEl.children[r];
+    row.classList.add('shake');
+    setTimeout(function(){ row.classList.remove('shake'); },500);
+  }
+
+  function submitGuess(){
+    if(gameOver) return;
+    if(current.length<WORD_LEN){
+      toast('Not enough letters');
+      shakeRow(guesses.length);
+      return;
+    }
+    var guess=current.toUpperCase();
+    if(!VALID[guess]){
+      toast('Not in word list');
+      shakeRow(guesses.length);
+      return;
+    }
+    var result=evaluateGuess(guess,answer);
+    var rowIdx=guesses.length;
+    animateReveal(rowIdx,guess,result);
+    guesses.push(guess);
+    current='';
+
+    var win=result.every(function(r){return r==='correct';});
+    var lose=!win&&guesses.length>=MAX_ROWS;
+
+    setTimeout(function(){
+      if(win){
+        gameOver=true;
+        bounceRow(rowIdx);
+        registerResult(true);
+        saveState();
+        updateHintBtn();
+        setTimeout(function(){ showStatsModal(); },1200);
+      } else if(lose){
+        gameOver=true;
+        registerResult(false);
+        saveState();
+        updateHintBtn();
+        setTimeout(function(){ showStatsModal(); },1600);
+      } else {
+        saveState();
+      }
+    }, WORD_LEN*180+300);
+  }
+
+  function evaluateGuess(guess,ans){
+    var result=new Array(WORD_LEN).fill('absent');
+    var ansArr=ans.split(''), guessArr=guess.split(''), used=new Array(WORD_LEN).fill(false);
+    for(var i=0;i<WORD_LEN;i++){
+      if(guessArr[i]===ansArr[i]){ result[i]='correct'; used[i]=true; }
+    }
+    for(var i=0;i<WORD_LEN;i++){
+      if(result[i]==='correct') continue;
+      var found=-1;
+      for(var j=0;j<WORD_LEN;j++){
+        if(!used[j]&&ansArr[j]===guessArr[i]){ found=j; break; }
+      }
+      if(found>=0){ result[i]='present'; used[found]=true; }
+    }
+    return result;
+  }
+
+  function animateReveal(rowIdx,guess,result){
+    var tiles=tileGrid[rowIdx];
+    for(var i=0;i<WORD_LEN;i++){
+      (function(i){
+        setTimeout(function(){
+          var t=tiles[i];
+          t.classList.add('flip');
+          setTimeout(function(){
+            t.classList.add(result[i]);
+            t.textContent=guess[i];
+          },250);
+          setTimeout(function(){ t.classList.remove('flip'); },500);
+          updateKey(guess[i],result[i]);
+        }, i*180);
+      })(i);
+    }
+  }
+  function bounceRow(rowIdx){
+    var tiles=tileGrid[rowIdx];
+    tiles.forEach(function(t,i){
+      setTimeout(function(){ t.classList.add('bounce'); }, i*100);
+    });
+  }
+
+  var PRI={absent:0,present:1,correct:2};
+  function updateKey(ch,status){
+    var k=keyEls[ch];
+    if(!k) return;
+    var cur=k.dataset.status;
+    if(!cur||PRI[status]>PRI[cur]){
+      k.classList.remove('absent','present','correct');
+      k.classList.add(status);
+      k.dataset.status=status;
+    }
+  }
+  function replayKeyboardColors(){
+    guesses.forEach(function(g){
+      var res=evaluateGuess(g,answer);
+      g.split('').forEach(function(ch,i){ updateKey(ch,res[i]); });
+    });
+  }
+  function replayBoard(){
+    guesses.forEach(function(g,rowIdx){
+      var res=evaluateGuess(g,answer);
+      var tiles=tileGrid[rowIdx];
+      g.split('').forEach(function(ch,i){
+        tiles[i].textContent=ch;
+        tiles[i].classList.add('filled',res[i]);
+      });
+    });
+  }
+
+  function registerResult(won){
+    stats.played=(stats.played||0)+1;
+    var today=dayIndex();
+    if(won){
+      stats.wins=(stats.wins||0)+1;
+      var tries=guesses.length;
+      stats.dist=stats.dist||[0,0,0,0,0,0];
+      stats.dist[tries-1]=(stats.dist[tries-1]||0)+1;
+      if(stats.lastWin===today-1){ stats.streak=(stats.streak||0)+1; }
+      else { stats.streak=1; }
+      stats.lastWin=today;
+      stats.maxStreak=Math.max(stats.maxStreak||0,stats.streak);
+    } else {
+      stats.streak=0;
+    }
+    saveStats();
+  }
+
+  function buildShareGrid(){
+    var lines=guesses.map(function(g){
+      var res=evaluateGuess(g,answer);
+      return res.map(function(r){
+        return r==='correct'?'🟩':(r==='present'?'🟨':'⬜');
+      }).join('');
+    });
+    var tries=gameOver&&guesses[guesses.length-1]===answer?guesses.length:'X';
+    return 'Boredle '+dayIndex()+'.'+(puzzleSlot+1)+' '+tries+'/'+MAX_ROWS+'\n\n'+lines.join('\n');
+  }
+
+  // ---------- Modals ----------
+  function closeModal(){ overlay.classList.remove('show'); }
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) closeModal(); });
+
+  function showHelpModal(){
+    modalContent.innerHTML =
+      '<button class="modal-close" onclick="document.getElementById(\'overlay\').classList.remove(\'show\')">'+
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+      '<h2>How to play</h2>'+
+      '<p>Guess the word in 6 tries. After each guess, the color of the tiles will show how close your guess was.</p>'+
+      '<div class="example-row">'+
+        tileHtml('W','correct')+tileHtml('E','')+tileHtml('A','')+tileHtml('R','')+tileHtml('Y','')+
+      '</div><p><strong>W</strong> is in the word and in the correct spot.</p>'+
+      '<div class="example-row">'+
+        tileHtml('P','')+tileHtml('I','present')+tileHtml('L','')+tileHtml('L','')+tileHtml('S','')+
+      '</div><p><strong>I</strong> is in the word but in the wrong spot.</p>'+
+      '<div class="example-row">'+
+        tileHtml('V','')+tileHtml('A','')+tileHtml('G','')+tileHtml('U','')+tileHtml('E','absent')+
+      '</div><p><strong>E</strong> is not in the word in any spot.</p>'+
+      '<hr class="divider"><p>3 new puzzles are available every day.</p>'+
+      '<p>Stuck? Tap the lightbulb in the top-left — first tap reveals the category, second tap reveals one letter.</p>';
+    overlay.classList.add('show');
+  }
+  function tileHtml(letter,cls){
+    return '<div class="example-tile '+(cls||'')+'" style="'+
+      (cls==='correct'?'background:var(--correct);border-color:var(--correct);color:#fff;':'')+
+      (cls==='present'?'background:var(--present);border-color:var(--present);color:#fff;':'')+
+      (cls==='absent'?'background:var(--absent);border-color:var(--absent);color:#fff;':'')+
+      '">'+letter+'</div>';
+  }
+
+  function showStatsModal(){
+    var winPct = stats.played ? Math.round(100*stats.wins/stats.played) : 0;
+    var maxDist = Math.max.apply(null, (stats.dist||[0,0,0,0,0,0]).concat([1]));
+    var distHtml = (stats.dist||[0,0,0,0,0,0]).map(function(count,i){
+      var isCurrent = gameOver && guesses.length===i+1 && guesses[guesses.length-1]===answer;
+      var width = Math.max(7, Math.round((count/maxDist)*100));
+      return '<div class="dist-row"><div class="dist-num">'+(i+1)+'</div>'+
+        '<div class="dist-bar-wrap"><div class="dist-bar'+(isCurrent?' highlight':'')+'" style="width:'+width+'%">'+count+'</div></div></div>';
+    }).join('');
+
+    var resultBanner = '';
+    var hasMorePuzzles = puzzleSlot < PUZZLES_PER_DAY-1;
+    if(gameOver){
+      var won = guesses.length>0 && guesses[guesses.length-1]===answer;
+      resultBanner = '<p style="text-align:center;font-weight:600;margin-bottom:4px;">'+
+        (won ? 'You got it!' : ('The word was: '+answer)) + '</p>'+
+        '<p style="text-align:center;font-size:12px;color:var(--border-dark);margin-top:0;">'+
+        (hasMorePuzzles ? ('Puzzle '+(puzzleSlot+1)+' of '+PUZZLES_PER_DAY+' complete.') : 'That was the last puzzle for today — come back tomorrow for 3 new ones!')+
+        '</p>';
+    }
+
+    var actionsHtml = '';
+    if(gameOver){
+      actionsHtml = '<div class="modal-actions" style="gap:10px;">';
+      if(hasMorePuzzles){
+        actionsHtml += '<button class="share-btn" id="nextPuzzleBtn" style="background:var(--text);">Next Puzzle ▶</button>';
+      }
+      actionsHtml += '<button class="share-btn" id="shareBtn">Share'+
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>'+
+        '</button></div>';
+    }
+
+    modalContent.innerHTML =
+      '<button class="modal-close" onclick="document.getElementById(\'overlay\').classList.remove(\'show\')">'+
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+      '<h2>Statistics</h2>'+
+      resultBanner+
+      '<div class="stats-grid">'+
+        '<div><div class="stats-num">'+(stats.played||0)+'</div><div class="stats-label">Played</div></div>'+
+        '<div><div class="stats-num">'+winPct+'</div><div class="stats-label">Win %</div></div>'+
+        '<div><div class="stats-num">'+(stats.streak||0)+'</div><div class="stats-label">Current Streak</div></div>'+
+        '<div><div class="stats-num">'+(stats.maxStreak||0)+'</div><div class="stats-label">Max Streak</div></div>'+
+      '</div>'+
+      '<h2 style="font-size:14px;text-transform:none;letter-spacing:0;text-align:left;margin-bottom:8px;">Guess Distribution</h2>'+
+      distHtml+
+      actionsHtml;
+
+    overlay.classList.add('show');
+
+    if(gameOver){
+      var shareBtn=document.getElementById('shareBtn');
+      if(shareBtn){
+        shareBtn.addEventListener('click', function(){
+          var text=buildShareGrid();
+          copyText(text);
+          shareBtn.innerHTML='Copied to clipboard!';
+        });
+      }
+      var nextBtn=document.getElementById('nextPuzzleBtn');
+      if(nextBtn){
+        nextBtn.addEventListener('click', function(){
+          closeModal();
+          startSlot(puzzleSlot+1);
+          buildBoard();
+          buildKeyboard();
+          updatePuzzleBar();
+          updateHintBtn();
+          saveState();
+        });
+      }
+    }
+  }
+  function copyText(text){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).catch(function(){ fallbackCopy(text); });
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text){
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  function showSettingsModal(){
+    var isDark=document.documentElement.classList.contains('dark');
+    modalContent.innerHTML =
+      '<button class="modal-close" onclick="document.getElementById(\'overlay\').classList.remove(\'show\')">'+
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+      '<h2>Settings</h2>'+
+      '<div class="toggle-row"><span>Dark Theme</span><div class="switch'+(isDark?' on':'')+'" id="darkToggle"></div></div>';
+    overlay.classList.add('show');
+    document.getElementById('darkToggle').addEventListener('click', function(){
+      document.documentElement.classList.toggle('dark');
+      var nowDark=document.documentElement.classList.contains('dark');
+      this.classList.toggle('on',nowDark);
+      ls('set','wordle_theme', nowDark?'dark':'light');
+    });
+  }
+
+  document.getElementById('helpBtn').addEventListener('click', showHelpModal);
+  document.getElementById('hintBtn').addEventListener('click', useHint);
+  document.getElementById('statsBtn').addEventListener('click', showStatsModal);
+  document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
+
+  document.addEventListener('keydown', function(e){
+    if(overlay.classList.contains('show')){
+      if(e.key==='Escape') closeModal();
+      return;
+    }
+    if(e.key==='Enter') submitGuess();
+    else if(e.key==='Backspace') backspace();
+    else if(/^[a-zA-Z]$/.test(e.key)) typeLetter(e.key.toUpperCase());
+  });
+
+  // ---------- INIT ----------
+  var savedTheme = ls('get','wordle_theme');
+  if(savedTheme==='dark') document.documentElement.classList.add('dark');
+
+  loadStats();
+  buildBoard();
+  buildKeyboard();
+
+  var restored = loadState();
+  if(!restored){ startSlot(0); }
+  updateHintBtn();
+  updatePuzzleBar();
+
+  replayBoard();
+  replayKeyboardColors();
+  if(guesses.length===0 && !restored){ /* fresh day, nothing to replay */ }
+
+  if(gameOver){
+    setTimeout(function(){ showStatsModal(); }, 500);
+  } else {
+    // first-time visitors see help automatically
+    if(!ls('get','wordle_visited')){
+      showHelpModal();
+      ls('set','wordle_visited','1');
+    }
+  }
+})();
+</script>
+</body>
+</html>

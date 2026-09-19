@@ -722,8 +722,8 @@
       return;
     }
     var guess=current.toUpperCase();
-    if(!VALID[guess]){
-      toast('Not in word list');
+    if(!/^[A-Z]{5}$/.test(guess)){
+      toast('Letters only');
       shakeRow(guesses.length);
       return;
     }

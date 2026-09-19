@@ -98,14 +98,14 @@
   }
   #board{
     display:grid;
-    grid-template-rows:repeat(6, 1fr);
+    grid-template-rows:repeat(var(--max-rows,6), 1fr);
     gap:5px;
-    width:min(350px, 82vw);
-    height:min(420px, 62vh);
+    width:min(calc(var(--word-len,5) * 66px), 92vw);
+    height:min(calc(var(--max-rows,6) * 62px), 68vh);
   }
   .row{
     display:grid;
-    grid-template-columns:repeat(5, 1fr);
+    grid-template-columns:repeat(var(--word-len,5), 1fr);
     gap:5px;
   }
   .tile{
@@ -114,9 +114,9 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:2rem;
+    font-size:clamp(0.9rem, calc(2.6rem - (var(--word-len,5) - 4) * 0.28rem), 2rem);
     font-weight:bold;
-    line-height:2rem;
+    line-height:1.1;
     border:2px solid var(--border);
     text-transform:uppercase;
     color:var(--text);
@@ -509,17 +509,83 @@
     });
     CATEGORIZED = clean;
   })();
+  // Extra categorized words at other lengths, so puzzle length can vary.
+  var CATEGORIZED_OTHER_LENGTHS = [
+    // ---- 4-letter ----
+    {w:"LION",cat:"Animals"},{w:"CRAB",cat:"Animals"},{w:"BEAR",cat:"Animals"},{w:"DUCK",cat:"Animals"},
+    {w:"WOLF",cat:"Animals"},{w:"GOAT",cat:"Animals"},{w:"FROG",cat:"Animals"},{w:"SEAL",cat:"Animals"},
+    {w:"CAKE",cat:"Food & Drink"},{w:"SOUP",cat:"Food & Drink"},{w:"MILK",cat:"Food & Drink"},{w:"RICE",cat:"Food & Drink"},
+    {w:"BEEF",cat:"Food & Drink"},{w:"PORK",cat:"Food & Drink"},{w:"TACO",cat:"Food & Drink"},{w:"CORN",cat:"Food & Drink"},
+    {w:"PLUM",cat:"Food & Drink"},{w:"LIME",cat:"Food & Drink"},{w:"PEAR",cat:"Food & Drink"},
+    {w:"HAND",cat:"Body Parts"},{w:"FOOT",cat:"Body Parts"},{w:"NOSE",cat:"Body Parts"},{w:"CHIN",cat:"Body Parts"},
+    {w:"NECK",cat:"Body Parts"},{w:"HAIR",cat:"Body Parts"},
+    {w:"RAIN",cat:"Weather & Nature"},{w:"SNOW",cat:"Weather & Nature"},{w:"WIND",cat:"Weather & Nature"},{w:"HAIL",cat:"Weather & Nature"},
+    {w:"DUNE",cat:"Weather & Nature"},{w:"LAKE",cat:"Weather & Nature"},{w:"HILL",cat:"Weather & Nature"},{w:"CAVE",cat:"Weather & Nature"},
+    {w:"GOLD",cat:"Colors"},{w:"GRAY",cat:"Colors"},{w:"NAVY",cat:"Colors"},{w:"JADE",cat:"Colors"},
+    {w:"GOLF",cat:"Sports"},{w:"SWIM",cat:"Sports"},{w:"RACE",cat:"Sports"},{w:"TEAM",cat:"Sports"},
+    {w:"DISC",cat:"Sports"},{w:"PUCK",cat:"Sports"},
+    {w:"BAND",cat:"Music"},{w:"BEAT",cat:"Music"},{w:"SONG",cat:"Music"},{w:"HORN",cat:"Music"},{w:"DRUM",cat:"Music"},
+    {w:"LAMP",cat:"Home"},{w:"SOFA",cat:"Home"},{w:"DESK",cat:"Home"},{w:"DOOR",cat:"Home"},{w:"SINK",cat:"Home"},{w:"OVEN",cat:"Home"},
+    {w:"VEST",cat:"Clothing"},{w:"BOOT",cat:"Clothing"},{w:"SOCK",cat:"Clothing"},{w:"BELT",cat:"Clothing"},{w:"ROBE",cat:"Clothing"},
+    {w:"SHIP",cat:"Travel"},{w:"BOAT",cat:"Travel"},{w:"ROAD",cat:"Travel"},{w:"TRIP",cat:"Travel"},{w:"TRAM",cat:"Travel"},{w:"DOCK",cat:"Travel"},
+    {w:"CODE",cat:"Tech & Science"},{w:"CHIP",cat:"Tech & Science"},{w:"WIFI",cat:"Tech & Science"},{w:"DATA",cat:"Tech & Science"},{w:"BYTE",cat:"Tech & Science"},
+    {w:"CALM",cat:"Emotions"},{w:"FEAR",cat:"Emotions"},{w:"GLAD",cat:"Emotions"},{w:"GLUM",cat:"Emotions"},
+    {w:"DICE",cat:"Games"},{w:"CARD",cat:"Games"},
+    {w:"LOCK",cat:"Tools & Objects"},{w:"NAIL",cat:"Tools & Objects"},{w:"HOOK",cat:"Tools & Objects"},{w:"PIPE",cat:"Tools & Objects"},
+    // ---- 6-letter ----
+    {w:"RABBIT",cat:"Animals"},{w:"TURTLE",cat:"Animals"},{w:"SPIDER",cat:"Animals"},{w:"MONKEY",cat:"Animals"},
+    {w:"DONKEY",cat:"Animals"},{w:"PARROT",cat:"Animals"},{w:"BEAVER",cat:"Animals"},{w:"WEASEL",cat:"Animals"},{w:"JACKAL",cat:"Animals"},
+    {w:"BANANA",cat:"Food & Drink"},{w:"COOKIE",cat:"Food & Drink"},{w:"BURGER",cat:"Food & Drink"},{w:"CARROT",cat:"Food & Drink"},
+    {w:"CHERRY",cat:"Food & Drink"},{w:"NOODLE",cat:"Food & Drink"},{w:"PICKLE",cat:"Food & Drink"},{w:"WAFFLE",cat:"Food & Drink"},
+    {w:"FINGER",cat:"Body Parts"},{w:"TONGUE",cat:"Body Parts"},{w:"KIDNEY",cat:"Body Parts"},
+    {w:"DESERT",cat:"Weather & Nature"},{w:"TUNDRA",cat:"Weather & Nature"},
+    {w:"PURPLE",cat:"Colors"},{w:"YELLOW",cat:"Colors"},{w:"ORANGE",cat:"Colors"},{w:"SILVER",cat:"Colors"},
+    {w:"SOCCER",cat:"Sports"},{w:"TENNIS",cat:"Sports"},{w:"BOXING",cat:"Sports"},{w:"HOCKEY",cat:"Sports"},{w:"ARCHER",cat:"Sports"},
+    {w:"GUITAR",cat:"Music"},{w:"VIOLIN",cat:"Music"},
+    {w:"GARAGE",cat:"Home"},{w:"CARPET",cat:"Home"},{w:"WINDOW",cat:"Home"},
+    {w:"JACKET",cat:"Clothing"},{w:"SANDAL",cat:"Clothing"},{w:"BEANIE",cat:"Clothing"},
+    {w:"SUBWAY",cat:"Travel"},{w:"TUNNEL",cat:"Travel"},
+    {w:"ROUTER",cat:"Tech & Science"},{w:"SERVER",cat:"Tech & Science"},{w:"BUTTON",cat:"Tech & Science"},{w:"MODULE",cat:"Tech & Science"},{w:"SCREEN",cat:"Tech & Science"},
+    {w:"JOYFUL",cat:"Emotions"},
+    {w:"PUZZLE",cat:"Games"},{w:"ARCADE",cat:"Games"},{w:"WIZARD",cat:"Games"},
+    {w:"HAMMER",cat:"Tools & Objects"},{w:"WRENCH",cat:"Tools & Objects"},{w:"LADDER",cat:"Tools & Objects"},{w:"BUCKET",cat:"Tools & Objects"},
+    // ---- 7-letter ----
+    {w:"DOLPHIN",cat:"Animals"},{w:"PANTHER",cat:"Animals"},{w:"OCTOPUS",cat:"Animals"},{w:"PENGUIN",cat:"Animals"},
+    {w:"LEOPARD",cat:"Animals"},{w:"GIRAFFE",cat:"Animals"},
+    {w:"PANCAKE",cat:"Food & Drink"},{w:"POPCORN",cat:"Food & Drink"},{w:"SEAFOOD",cat:"Food & Drink"},{w:"AVOCADO",cat:"Food & Drink"},
+    {w:"FOREARM",cat:"Body Parts"},{w:"EYEBROW",cat:"Body Parts"},
+    {w:"THUNDER",cat:"Weather & Nature"},{w:"TORNADO",cat:"Weather & Nature"},{w:"RAINBOW",cat:"Weather & Nature"},
+    {w:"MAGENTA",cat:"Colors"},{w:"EMERALD",cat:"Colors"},
+    {w:"BOWLING",cat:"Sports"},{w:"CYCLING",cat:"Sports"},
+    {w:"TRUMPET",cat:"Music"},{w:"CYMBALS",cat:"Music"},
+    {w:"CEILING",cat:"Home"},{w:"KITCHEN",cat:"Home"},{w:"HALLWAY",cat:"Home"},
+    {w:"SWEATER",cat:"Clothing"},{w:"SNEAKER",cat:"Clothing"},
+    {w:"AIRPORT",cat:"Travel"},{w:"HIGHWAY",cat:"Travel"},
+    {w:"NETWORK",cat:"Tech & Science"},{w:"WEBSITE",cat:"Tech & Science"},
+    {w:"NERVOUS",cat:"Emotions"},{w:"JEALOUS",cat:"Emotions"},
+    {w:"MYSTERY",cat:"Games"},
+    {w:"COMPASS",cat:"Tools & Objects"}
+  ];
+  CATEGORIZED = CATEGORIZED.concat(CATEGORIZED_OTHER_LENGTHS);
+  // re-sanitize across the combined set (allow lengths 4-7 now, not just 5)
+  (function(){
+    var seen={}, clean=[];
+    CATEGORIZED.forEach(function(o){
+      if(o.w && o.w.length>=4 && o.w.length<=7 && !seen[o.w]){ seen[o.w]=true; clean.push(o); }
+    });
+    CATEGORIZED = clean;
+  })();
   var CATEGORY_OF = {};
   CATEGORIZED.forEach(function(o){ CATEGORY_OF[o.w]=o.cat; VALID[o.w]=true; });
   var ANSWER_POOL = CATEGORIZED.map(function(o){ return o.w; });
 
   // ---------- STATE ----------
-  var WORD_LEN=5, MAX_ROWS=6;
-  var PUZZLES_PER_DAY=3;
+  var WORD_LEN=5, MAX_ROWS=6; // recalculated per-puzzle in startSlot()/loadState()
+  var DAY_SEED_STRIDE=500; // generous stride so an unlimited run of puzzles in one day rarely repeats
   var answer="", guesses=[], current="", gameOver=false;
   var hintStage=0; // 0 = no hint, 1 = category revealed, 2 = letter revealed
-  var puzzleSlot=0; // which puzzle of the day (0-based)
-  var stats={played:0,wins:0,streak:0,maxStreak:0,dist:[0,0,0,0,0,0],lastWin:null};
+  var puzzleSlot=0; // which puzzle in this endless run (0-based)
+  var stats={played:0,wins:0,streak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0,0,0],lastWin:null};
 
   function dayIndex(){
     var epoch=Date.UTC(2024,0,1);
@@ -527,9 +593,9 @@
     var today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
     return Math.floor((today-epoch)/86400000);
   }
-  // Deterministic word for a given day+slot so everyone gets the same puzzles that day
+  // Deterministic word for a given day+slot so everyone gets the same puzzle order that day
   function wordForSlot(day, slot){
-    var seed = day*PUZZLES_PER_DAY + slot;
+    var seed = day*DAY_SEED_STRIDE + slot;
     return ANSWER_POOL[seed % ANSWER_POOL.length];
   }
   function pickWord(){ return wordForSlot(dayIndex(), puzzleSlot); }
@@ -562,6 +628,8 @@
           gameOver=!!s.gameOver;
           answer=s.answer||wordForSlot(dayIndex(),puzzleSlot);
           hintStage=s.hintStage||0;
+          WORD_LEN=answer.length;
+          MAX_ROWS=Math.max(6, WORD_LEN+1);
           return true;
         }
       }catch(e){}
@@ -571,6 +639,8 @@
   function startSlot(slot){
     puzzleSlot=slot;
     answer=wordForSlot(dayIndex(),puzzleSlot);
+    WORD_LEN=answer.length;
+    MAX_ROWS=Math.max(6, WORD_LEN+1);
     guesses=[];
     current='';
     gameOver=false;
@@ -578,7 +648,7 @@
   }
   function updatePuzzleBar(){
     var bar=document.getElementById('puzzleBar');
-    if(bar) bar.textContent='PUZZLE '+(puzzleSlot+1)+' OF '+PUZZLES_PER_DAY;
+    if(bar) bar.textContent='PUZZLE '+(puzzleSlot+1);
   }
 
   // ---------- DOM ----------
@@ -589,6 +659,8 @@
   var tileGrid=[];
 
   function buildBoard(){
+    document.documentElement.style.setProperty('--word-len', WORD_LEN);
+    document.documentElement.style.setProperty('--max-rows', MAX_ROWS);
     boardEl.innerHTML='';
     tileGrid=[];
     for(var r=0;r<MAX_ROWS;r++){
@@ -722,7 +794,7 @@
       return;
     }
     var guess=current.toUpperCase();
-    if(!/^[A-Z]{5}$/.test(guess)){
+    if(!(new RegExp('^[A-Z]{'+WORD_LEN+'}$')).test(guess)){
       toast('Letters only');
       shakeRow(guesses.length);
       return;
@@ -831,7 +903,8 @@
     if(won){
       stats.wins=(stats.wins||0)+1;
       var tries=guesses.length;
-      stats.dist=stats.dist||[0,0,0,0,0,0];
+      stats.dist=stats.dist||[0,0,0,0,0,0,0,0,0,0,0,0];
+      while(stats.dist.length<tries){ stats.dist.push(0); }
       stats.dist[tries-1]=(stats.dist[tries-1]||0)+1;
       if(stats.lastWin===today-1){ stats.streak=(stats.streak||0)+1; }
       else { stats.streak=1; }
@@ -873,7 +946,7 @@
       '<div class="example-row">'+
         tileHtml('V','')+tileHtml('A','')+tileHtml('G','')+tileHtml('U','')+tileHtml('E','absent')+
       '</div><p><strong>E</strong> is not in the word in any spot.</p>'+
-      '<hr class="divider"><p>3 new puzzles are available every day.</p>'+
+      '<hr class="divider"><p>Word length changes every puzzle, and your number of tries scales with it (length + 1, minimum 6). There\'s no daily limit — keep hitting Next Puzzle for as long as you want.</p>'+
       '<p>Stuck? Tap the lightbulb in the top-left — first tap reveals the category, second tap reveals one letter.</p>';
     overlay.classList.add('show');
   }
@@ -887,32 +960,35 @@
 
   function showStatsModal(){
     var winPct = stats.played ? Math.round(100*stats.wins/stats.played) : 0;
-    var maxDist = Math.max.apply(null, (stats.dist||[0,0,0,0,0,0]).concat([1]));
-    var distHtml = (stats.dist||[0,0,0,0,0,0]).map(function(count,i){
-      var isCurrent = gameOver && guesses.length===i+1 && guesses[guesses.length-1]===answer;
+    var distArr = stats.dist||[0,0,0,0,0,0,0,0,0,0,0,0];
+    var lastNonZero=-1;
+    for(var di=0;di<distArr.length;di++){ if(distArr[di]>0) lastNonZero=di; }
+    var rowsToShow = Math.max(MAX_ROWS, lastNonZero+1, 6);
+    var maxDist = Math.max.apply(null, distArr.slice(0,rowsToShow).concat([1]));
+    var distHtml = '';
+    for(var ri=0;ri<rowsToShow;ri++){
+      var count = distArr[ri]||0;
+      var isCurrent = gameOver && guesses.length===ri+1 && guesses[guesses.length-1]===answer;
       var width = Math.max(7, Math.round((count/maxDist)*100));
-      return '<div class="dist-row"><div class="dist-num">'+(i+1)+'</div>'+
+      distHtml += '<div class="dist-row"><div class="dist-num">'+(ri+1)+'</div>'+
         '<div class="dist-bar-wrap"><div class="dist-bar'+(isCurrent?' highlight':'')+'" style="width:'+width+'%">'+count+'</div></div></div>';
-    }).join('');
+    }
 
     var resultBanner = '';
-    var hasMorePuzzles = puzzleSlot < PUZZLES_PER_DAY-1;
     if(gameOver){
       var won = guesses.length>0 && guesses[guesses.length-1]===answer;
       resultBanner = '<p style="text-align:center;font-weight:600;margin-bottom:4px;">'+
         (won ? 'You got it!' : ('The word was: '+answer)) + '</p>'+
         '<p style="text-align:center;font-size:12px;color:var(--border-dark);margin-top:0;">'+
-        (hasMorePuzzles ? ('Puzzle '+(puzzleSlot+1)+' of '+PUZZLES_PER_DAY+' complete.') : 'That was the last puzzle for today — come back tomorrow for 3 new ones!')+
+        'Puzzle '+(puzzleSlot+1)+' complete — keep going whenever you want.'+
         '</p>';
     }
 
     var actionsHtml = '';
     if(gameOver){
-      actionsHtml = '<div class="modal-actions" style="gap:10px;">';
-      if(hasMorePuzzles){
-        actionsHtml += '<button class="share-btn" id="nextPuzzleBtn" style="background:var(--text);">Next Puzzle ▶</button>';
-      }
-      actionsHtml += '<button class="share-btn" id="shareBtn">Share'+
+      actionsHtml = '<div class="modal-actions" style="gap:10px;">'+
+        '<button class="share-btn" id="nextPuzzleBtn" style="background:var(--text);">Next Puzzle ▶</button>'+
+        '<button class="share-btn" id="shareBtn">Share'+
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>'+
         '</button></div>';
     }
@@ -1007,11 +1083,11 @@
   if(savedTheme==='dark') document.documentElement.classList.add('dark');
 
   loadStats();
-  buildBoard();
-  buildKeyboard();
 
   var restored = loadState();
   if(!restored){ startSlot(0); }
+  buildBoard();
+  buildKeyboard();
   updateHintBtn();
   updatePuzzleBar();
 
